@@ -102,7 +102,20 @@ export function buildSparklinePoints(records, days = 7) {
 
 export function buildDistributionPlot(records, days = 30) {
   const matches = records.filter((record) => isWithinLastDays(record.createdAt, days));
-  const samples = aggregateDailyTotals(matches);
+  const grouped = new Map();
+
+  for (const record of matches) {
+    const key = `${dateKey(record.createdAt)}::${record.source === "local" || record.source === "live" ? "me" : "others"}`;
+    const current = grouped.get(key) ?? {
+      key: dateKey(record.createdAt),
+      total: 0,
+      isMine: record.source === "local" || record.source === "live",
+    };
+    current.total += record.durationMinutes;
+    grouped.set(key, current);
+  }
+
+  const samples = [...grouped.values()].sort((a, b) => a.key.localeCompare(b.key));
 
   if (!samples.length) {
     return {
@@ -123,6 +136,7 @@ export function buildDistributionPlot(records, days = 30) {
       x: (sample.total / max) * 100,
       y: 24 + (index % 4) * 16,
       label: sample.key,
+      isMine: sample.isMine,
     })),
   };
 }

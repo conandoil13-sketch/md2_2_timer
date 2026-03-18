@@ -1,4 +1,4 @@
-import { activeRepository, repositoryModeLabel } from "./data/service.js?v=mobile-reset-5";
+import { activeRepository, repositoryModeLabel } from "./data/service.js?v=mobile-reset-6";
 import {
   averageByPeriod,
   aggregateDailyTotals,
@@ -10,7 +10,7 @@ import {
   relativeIntensity,
   totalByPeriod,
   totalForDate,
-} from "./lib/time.js?v=mobile-reset-5";
+} from "./lib/time.js?v=mobile-reset-6";
 
 const state = {
   catalog: [],
@@ -205,7 +205,7 @@ function renderDistributionPlot(distribution) {
         .map(
           (point) => `
             <span
-              class="distribution-dot"
+              class="distribution-dot ${point.isMine ? "is-mine" : ""}"
               style="left:${point.x}%; top:${point.y}%"
               title="${point.label} · ${formatMinutes(point.value)}"
             ></span>

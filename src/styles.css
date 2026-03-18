@@ -600,6 +600,11 @@ h2 {
   box-shadow: 0 0 0 3px rgba(30, 169, 239, 0.12);
 }
 
+.distribution-dot.is-mine {
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(79, 148, 98, 0.16);
+}
+
 .db-summary-meta {
   display: flex;
   justify-content: space-between;
