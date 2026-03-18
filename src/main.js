@@ -1,11 +1,14 @@
 import { activeRepository, repositoryModeLabel } from "./data/service.js?v=mobile-reset-3";
 import {
   averageByPeriod,
+  aggregateDailyTotals,
+  buildDistributionPlot,
   buildSparklinePoints,
   formatDigitalDuration,
   formatMinutes,
   formatShortDate,
   relativeIntensity,
+  totalByPeriod,
   totalForDate,
 } from "./lib/time.js?v=mobile-reset-3";
 
@@ -115,17 +118,19 @@ function getGroupedRecords(mode) {
 
 function buildSummary(mode, label) {
   const records = getGroupedRecords(mode);
-  const weekly = averageByPeriod(records, 7);
-  const monthly = averageByPeriod(records, 30);
-  const overallMonthly = averageByPeriod(getGroupedRecords("all"), 30);
+  const weekly = totalByPeriod(records, 7);
+  const monthly = totalByPeriod(records, 30);
+  const overallMonthly = totalByPeriod(getGroupedRecords("all"), 30);
+  const samples = aggregateDailyTotals(records);
 
   return {
     label,
-    count: records.length,
+    count: samples.length,
     weekly,
     monthly,
     signal: relativeIntensity(monthly, overallMonthly),
     sparkline: buildSparklinePoints(records, 7),
+    distribution: buildDistributionPlot(records, 30),
   };
 }
 
@@ -136,6 +141,28 @@ function renderSparkline(points) {
     <svg viewBox="0 0 100 100" class="sparkline" preserveAspectRatio="none" aria-hidden="true">
       <polyline points="${polyline}" />
     </svg>
+  `;
+}
+
+function renderDistributionPlot(distribution) {
+  const meanX = distribution.max ? (distribution.mean / distribution.max) * 100 : 0;
+
+  return `
+    <div class="distribution-chart" aria-hidden="true">
+      <div class="distribution-track"></div>
+      <div class="distribution-mean" style="left:${meanX}%"></div>
+      ${distribution.points
+        .map(
+          (point) => `
+            <span
+              class="distribution-dot"
+              style="left:${point.x}%; top:${point.y}%"
+              title="${point.label} · ${formatMinutes(point.value)}"
+            ></span>
+          `,
+        )
+        .join("")}
+    </div>
   `;
 }
 
@@ -253,11 +280,11 @@ function renderTimerScreen() {
           <strong>${formatMinutes(todayTotal)}</strong>
         </article>
         <article class="stat-card">
-          <span>weekly daily avg</span>
+          <span>weekly total</span>
           <strong>${formatMinutes(classSummary.weekly)}</strong>
         </article>
         <article class="stat-card">
-          <span>monthly daily avg</span>
+          <span>monthly total</span>
           <strong>${formatMinutes(classSummary.monthly)}</strong>
         </article>
       </section>
@@ -283,7 +310,7 @@ function renderTimerScreen() {
         </div>
         ${renderSparkline(classSummary.sparkline)}
         <p class="analysis-copy">
-          전체 월간 평균 대비 ${classSummary.signal >= 0 ? "+" : ""}${classSummary.signal.toFixed(1)}%
+          전체 월간 총합 대비 ${classSummary.signal >= 0 ? "+" : ""}${classSummary.signal.toFixed(1)}%
         </p>
       </section>
     </section>
@@ -307,7 +334,7 @@ function renderDbModal() {
         <div class="db-top">
           <div>
             <p class="micro-label">Data Bank</p>
-            <h2>Average Durations</h2>
+            <h2>Work Time Distribution</h2>
           </div>
           <button class="ghost-button" id="closeDb">Close</button>
         </div>
@@ -321,10 +348,10 @@ function renderDbModal() {
                     <span>${summary.label}</span>
                     <strong>${summary.count}</strong>
                   </div>
-                  ${renderSparkline(summary.sparkline)}
+                  ${renderDistributionPlot(summary.distribution)}
                   <div class="db-summary-meta">
-                    <span>W ${formatMinutes(summary.weekly)}</span>
-                    <span>M ${formatMinutes(summary.monthly)}</span>
+                    <span>weekly total ${formatMinutes(summary.weekly)}</span>
+                    <span>monthly total ${formatMinutes(summary.monthly)}</span>
                   </div>
                 </article>
               `,

@@ -66,6 +66,12 @@ export function averageByPeriod(records, days) {
   return total / totals.length;
 }
 
+export function totalByPeriod(records, days) {
+  const matches = records.filter((record) => isWithinLastDays(record.createdAt, days));
+  const totals = aggregateDailyTotals(matches);
+  return totals.reduce((sum, entry) => sum + entry.total, 0);
+}
+
 export function totalForDate(records, targetDate = new Date()) {
   const targetKey = dateKey(targetDate);
   return records.reduce((sum, record) => {
@@ -92,6 +98,33 @@ export function buildSparklinePoints(records, days = 7) {
     label: bucket.key,
     value: bucket.total,
   }));
+}
+
+export function buildDistributionPlot(records, days = 30) {
+  const matches = records.filter((record) => isWithinLastDays(record.createdAt, days));
+  const samples = aggregateDailyTotals(matches);
+
+  if (!samples.length) {
+    return {
+      points: [],
+      mean: 0,
+      max: 1,
+    };
+  }
+
+  const max = Math.max(...samples.map((sample) => sample.total), 1);
+  const mean = samples.reduce((sum, sample) => sum + sample.total, 0) / samples.length;
+
+  return {
+    mean,
+    max,
+    points: samples.map((sample, index) => ({
+      value: sample.total,
+      x: (sample.total / max) * 100,
+      y: 24 + (index % 4) * 16,
+      label: sample.key,
+    })),
+  };
 }
 
 export function relativeIntensity(value, baseline) {
