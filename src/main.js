@@ -19,6 +19,7 @@ const state = {
   screen: "select",
   search: "",
   dbOpen: false,
+  dbPeriod: "weekly",
   running: false,
   startedAt: null,
   elapsedSeconds: 0,
@@ -27,6 +28,12 @@ const state = {
 
 const app = document.querySelector("#app");
 let tickTimer = null;
+const dbSummaryConfigs = [
+  { mode: "course-professor", label: "Class + Professor" },
+  { mode: "course", label: "Class" },
+  { mode: "professor", label: "Professor" },
+  { mode: "all", label: "All Participants" },
+];
 
 function selectedMeta() {
   return state.catalog.find((item) => item.id === state.selection) ?? null;
@@ -116,6 +123,35 @@ function getGroupedRecords(mode) {
   return current;
 }
 
+function getMyGroupedRecords(mode) {
+  const mine = enrichRecords(recordsForAnalysis()).filter(
+    (record) => record.source === "local" || record.source === "live",
+  );
+  const active = selectedMeta();
+
+  if (mode === "all") {
+    return mine;
+  }
+
+  if (!active) {
+    return [];
+  }
+
+  if (mode === "course-professor") {
+    return mine.filter((record) => record.catalogId === active.id);
+  }
+
+  if (mode === "course") {
+    return mine.filter((record) => record.course === active.course);
+  }
+
+  if (mode === "professor") {
+    return mine.filter((record) => record.professor === active.professor);
+  }
+
+  return mine;
+}
+
 function buildSummary(mode, label) {
   const records = getGroupedRecords(mode);
   const weekly = totalByPeriod(records, 7);
@@ -131,6 +167,20 @@ function buildSummary(mode, label) {
     signal: relativeIntensity(monthly, overallMonthly),
     sparkline: buildSparklinePoints(records, 7),
     distribution: buildDistributionPlot(records, 30),
+  };
+}
+
+function buildDbSummary(mode, label) {
+  const records = getGroupedRecords(mode);
+  const days = state.dbPeriod === "weekly" ? 7 : 30;
+  const distribution = buildDistributionPlot(records, days);
+
+  return {
+    mode,
+    label,
+    count: distribution.points.length,
+    average: averageByPeriod(records, days),
+    distribution,
   };
 }
 
@@ -249,8 +299,11 @@ function renderSelectScreen() {
 function renderTimerScreen() {
   const active = selectedMeta();
   const elapsed = currentElapsedSeconds();
+  const myClassRecords = getMyGroupedRecords("course-professor");
+  const todayTotal = totalForDate(myClassRecords);
+  const myWeeklyTotal = totalByPeriod(myClassRecords, 7);
+  const myMonthlyTotal = totalByPeriod(myClassRecords, 30);
   const classSummary = buildSummary("course-professor", "Class + Professor");
-  const todayTotal = totalForDate(getGroupedRecords("course-professor"));
 
   return `
     <section class="phone-shell timer-shell">
@@ -281,11 +334,11 @@ function renderTimerScreen() {
         </article>
         <article class="stat-card">
           <span>weekly total</span>
-          <strong>${formatMinutes(classSummary.weekly)}</strong>
+          <strong>${formatMinutes(myWeeklyTotal)}</strong>
         </article>
         <article class="stat-card">
           <span>monthly total</span>
-          <strong>${formatMinutes(classSummary.monthly)}</strong>
+          <strong>${formatMinutes(myMonthlyTotal)}</strong>
         </article>
       </section>
 
@@ -318,12 +371,7 @@ function renderTimerScreen() {
 }
 
 function renderDbModal() {
-  const summaries = [
-    buildSummary("course-professor", "Class + Professor"),
-    buildSummary("course", "Class"),
-    buildSummary("professor", "Professor"),
-    buildSummary("all", "All Participants"),
-  ];
+  const summaries = dbSummaryConfigs.map((config) => buildDbSummary(config.mode, config.label));
   const recentRecords = enrichRecords(recordsForAnalysis())
     .filter((record) => record.source !== "live")
     .slice(0, 8);
@@ -339,6 +387,15 @@ function renderDbModal() {
           <button class="ghost-button" id="closeDb">Close</button>
         </div>
 
+        <div class="period-toggle" role="tablist" aria-label="DB period toggle">
+          <button class="period-button ${state.dbPeriod === "weekly" ? "is-active" : ""}" id="setWeeklyView">
+            Weekly
+          </button>
+          <button class="period-button ${state.dbPeriod === "monthly" ? "is-active" : ""}" id="setMonthlyView">
+            Monthly
+          </button>
+        </div>
+
         <div class="db-summary-list">
           ${summaries
             .map(
@@ -350,8 +407,8 @@ function renderDbModal() {
                   </div>
                   ${renderDistributionPlot(summary.distribution)}
                   <div class="db-summary-meta">
-                    <span>weekly total ${formatMinutes(summary.weekly)}</span>
-                    <span>monthly total ${formatMinutes(summary.monthly)}</span>
+                    <span>${state.dbPeriod === "weekly" ? "weekly average" : "monthly average"}</span>
+                    <span>${formatMinutes(summary.average)}</span>
                   </div>
                 </article>
               `,
@@ -452,6 +509,16 @@ function bindEvents() {
 
   document.querySelector("#openDbSecondary")?.addEventListener("click", () => {
     state.dbOpen = true;
+    render();
+  });
+
+  document.querySelector("#setWeeklyView")?.addEventListener("click", () => {
+    state.dbPeriod = "weekly";
+    render();
+  });
+
+  document.querySelector("#setMonthlyView")?.addEventListener("click", () => {
+    state.dbPeriod = "monthly";
     render();
   });
 

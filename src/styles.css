@@ -15,6 +15,14 @@
   --sans: "Helvetica Neue", "Apple SD Gothic Neo", sans-serif;
 }
 
+@font-face {
+  font-family: "DSEG7ClassicMini";
+  src: url("https://unpkg.com/dseg@0.46.0/fonts/DSEG7-Classic-MINI/DSEG7ClassicMini-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -364,10 +372,11 @@ h2 {
   place-items: center;
   background: linear-gradient(180deg, #232323, #3a3a3a);
   color: #f8f4ec;
-  font-family: var(--mono);
+  font-family: "DSEG7ClassicMini", var(--mono);
   font-size: clamp(2.8rem, 14vw, 4.6rem);
   letter-spacing: -0.12em;
-}
+  line-height: 1;
+  }
 
 .stats-grid {
   display: grid;
@@ -521,6 +530,30 @@ h2 {
 
 .db-summary-list {
   margin-top: 14px;
+}
+
+.period-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.period-button {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(23, 23, 23, 0.12);
+  background: rgba(255, 255, 255, 0.58);
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.period-button.is-active {
+  background: linear-gradient(180deg, var(--blue), var(--blue-deep));
+  color: white;
+  border-color: transparent;
 }
 
 .db-summary-item {
