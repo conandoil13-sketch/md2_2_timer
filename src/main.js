@@ -1,4 +1,4 @@
-import { activeRepository, repositoryModeLabel } from "./data/service.js";
+import { activeRepository, repositoryModeLabel } from "./data/service.js?v=mobile-reset-3";
 import {
   averageByPeriod,
   buildSparklinePoints,
@@ -7,14 +7,14 @@ import {
   formatShortDate,
   relativeIntensity,
   totalForDate,
-} from "./lib/time.js";
+} from "./lib/time.js?v=mobile-reset-3";
 
 const state = {
   catalog: [],
   records: [],
   selection: null,
+  screen: "select",
   search: "",
-  step: "select",
   dbOpen: false,
   running: false,
   startedAt: null,
@@ -29,7 +29,7 @@ function selectedMeta() {
   return state.catalog.find((item) => item.id === state.selection) ?? null;
 }
 
-function elapsedSeconds() {
+function currentElapsedSeconds() {
   if (state.running && state.startedAt) {
     return Math.floor((state.nowTick - state.startedAt) / 1000);
   }
@@ -46,7 +46,7 @@ function recordsForAnalysis() {
     {
       id: "live-session",
       catalogId: state.selection,
-      durationMinutes: Math.max(1 / 60, elapsedSeconds() / 60),
+      durationMinutes: Math.max(1 / 60, currentElapsedSeconds() / 60),
       createdAt: new Date().toISOString(),
       source: "live",
     },
@@ -118,14 +118,13 @@ function buildSummary(mode, label) {
   const weekly = averageByPeriod(records, 7);
   const monthly = averageByPeriod(records, 30);
   const overallMonthly = averageByPeriod(getGroupedRecords("all"), 30);
-  const signal = relativeIntensity(monthly, overallMonthly);
 
   return {
     label,
     count: records.length,
     weekly,
     monthly,
-    signal,
+    signal: relativeIntensity(monthly, overallMonthly),
     sparkline: buildSparklinePoints(records, 7),
   };
 }
@@ -140,242 +139,209 @@ function renderSparkline(points) {
   `;
 }
 
-function renderSelectStep(active) {
-  const list = filteredCatalog();
+function renderCatalogList() {
+  const results = filteredCatalog();
+
+  if (!results.length) {
+    return `<div class="result-empty">검색 결과가 없습니다.</div>`;
+  }
+
+  return results
+    .map(
+      (item) => `
+        <button class="result-item ${item.id === state.selection ? "is-selected" : ""}" data-select="${item.id}">
+          <span>${item.course}</span>
+          <strong>${item.professor}</strong>
+          <em>${item.code}</em>
+        </button>
+      `,
+    )
+    .join("");
+}
+
+function renderSelectScreen() {
+  const active = selectedMeta();
 
   return `
-    <section class="device-panel">
-      <div class="print-row">
-        <span>9V</span>
-        <span>source</span>
-        <span>arm</span>
-      </div>
-
-      <div class="device-head">
+    <section class="phone-shell">
+      <header class="app-header">
         <div>
-          <p class="brand-mark">KMU-VD<br />time analyzer</p>
-          <p class="descriptor">
-            assignment duration device<br />
-            procedural selection interface<br />
-            built for visual design students
-          </p>
+          <p class="micro-label">KMU-VD</p>
+          <h1>Time Analyzer</h1>
         </div>
-        <div class="top-action">
-          <span class="tiny-light amber"></span>
-          <button class="primary-cta" id="advanceStep" ${!active ? "disabled" : ""}>
-            Start Measuring
-          </button>
+        <div class="status-chip">
+          <span class="lamp amber"></span>
+          ${repositoryModeLabel}
         </div>
-      </div>
+      </header>
 
-      <div class="workflow-strip">
-        <div class="workflow-node is-active">
-          <span>01</span>
-          <strong>Select Class</strong>
-        </div>
-        <div class="workflow-line"></div>
-        <div class="workflow-node">
-          <span>02</span>
-          <strong>Measure + Live Data</strong>
-        </div>
-      </div>
+      <section class="hero-card">
+        <p class="hero-kicker">Single-purpose assignment timer</p>
+        <h2>수업을 선택하고 바로 측정을 시작하세요.</h2>
+      </section>
 
-      <div class="select-layout">
-        <div class="knob-cluster">
-          <div class="knob-grid">
-            <div class="main-knob">
-              <div class="knob-pointer"></div>
-            </div>
-          </div>
-          <div class="aux-knob">
-            <div class="knob-pointer dark"></div>
-          </div>
-          <div class="tiny-light green"></div>
+      <section class="search-card">
+        <label class="input-label" for="searchInput">course / professor search</label>
+        <input
+          id="searchInput"
+          class="search-input"
+          type="text"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="예: 브랜딩 스튜디오 / 이준호"
+          value="${escapeHtml(state.search)}"
+        />
+        <div class="selection-preview">
+          <span>current selection</span>
+          <strong>${active ? `${active.course} / ${active.professor}` : "수업을 선택하세요"}</strong>
+          <em>${active ? active.code : "selection required"}</em>
         </div>
+      </section>
 
-        <div class="selector-module">
-          <label class="field-label" for="searchInput">course / professor search</label>
-          <input
-            id="searchInput"
-            class="device-input"
-            type="search"
-            autocomplete="off"
-            placeholder="예: 브랜딩 스튜디오 / 이준호"
-            value="${escapeHtml(state.search)}"
-          />
-
-          <div class="selected-plate">
-            <span>current selection</span>
-            <strong>${active ? `${active.course} / ${active.professor}` : "not armed"}</strong>
-            <em>${active ? active.code : "choose one class to proceed"}</em>
-          </div>
-
-          <div class="catalog-box">
-            ${
-              list.length
-                ? list
-                    .map(
-                      (item) => `
-                        <button class="catalog-chip ${item.id === state.selection ? "is-selected" : ""}" data-select="${item.id}">
-                          <span>${item.course}</span>
-                          <strong>${item.professor}</strong>
-                          <em>${item.code}</em>
-                        </button>
-                      `,
-                    )
-                    .join("")
-                : `<div class="catalog-empty">검색 결과가 없습니다.</div>`
-            }
-          </div>
+      <section class="results-card">
+        <div class="section-head">
+          <span>Class List</span>
+          <strong>${filteredCatalog().length}</strong>
         </div>
-      </div>
+        <div class="results-scroll" id="catalogBox">
+          ${renderCatalogList()}
+        </div>
+      </section>
+
+      <footer class="bottom-bar">
+        <button class="primary-button" id="advanceStep" ${!active ? "disabled" : ""}>
+          Start Measuring
+        </button>
+      </footer>
     </section>
   `;
 }
 
-function renderTimerStep(active, elapsed) {
-  const summary = buildSummary("course-professor", "Class + Professor");
+function renderTimerScreen() {
+  const active = selectedMeta();
+  const elapsed = currentElapsedSeconds();
+  const classSummary = buildSummary("course-professor", "Class + Professor");
   const todayTotal = totalForDate(getGroupedRecords("course-professor"));
 
   return `
-    <section class="device-panel timer-mode">
-      <div class="print-row">
-        <span>record</span>
-        <span>${repositoryModeLabel}</span>
-        <span>${state.running ? "live" : "armed"}</span>
-      </div>
-
-      <div class="device-head">
+    <section class="phone-shell timer-shell">
+      <header class="app-header">
         <div>
-          <p class="brand-mark">KMU-VD<br />time analyzer</p>
-          <p class="descriptor">
-            selected source<br />
-            ${active.course}<br />
-            ${active.professor}
-          </p>
+          <p class="micro-label">MEASUREMENT</p>
+          <h1>${active.course}</h1>
+          <p class="sub-copy">${active.professor} / ${active.code}</p>
         </div>
-        <div class="top-action">
-          <span class="tiny-light ${state.running ? "green pulse" : "amber"}"></span>
-          <button class="secondary-cta" id="returnSelect" ${state.running ? "disabled" : ""}>
-            Change Class
+        <button class="ghost-button knob-button" id="returnSelect" ${state.running ? "disabled" : ""} aria-label="Change">
+          <span class="knob-text">Change</span>
+        </button>
+      </header>
+
+      <section class="timer-card">
+        <p class="micro-label">timer core</p>
+        <div class="timer-screen">${formatDigitalDuration(elapsed)}</div>
+        <div class="live-indicator">
+          <span class="lamp ${state.running ? "green" : "amber"} ${state.running ? "pulse" : ""}"></span>
+          ${state.running ? "Recording" : "Armed"}
+        </div>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span>today total</span>
+          <strong>${formatMinutes(todayTotal)}</strong>
+        </article>
+        <article class="stat-card">
+          <span>weekly daily avg</span>
+          <strong>${formatMinutes(classSummary.weekly)}</strong>
+        </article>
+        <article class="stat-card">
+          <span>monthly daily avg</span>
+          <strong>${formatMinutes(classSummary.monthly)}</strong>
+        </article>
+      </section>
+
+      <section class="controls-card">
+        <div class="control-row">
+          <button class="control-button is-dark knob-button ${state.running ? "is-live" : ""}" id="toggleTimer" aria-label="${state.running ? "Stop" : "Start"}">
+            <span class="knob-text">${state.running ? "Stop" : "Start"}</span>
+          </button>
+          <button class="control-button is-light knob-button" id="resetTimer" ${state.running || elapsed === 0 ? "disabled" : ""} aria-label="Reset">
+            <span class="knob-text">Reset</span>
+          </button>
+          <button class="control-button is-blue knob-button" id="openDbSecondary" aria-label="DB">
+            <span class="knob-text">DB</span>
           </button>
         </div>
-      </div>
+      </section>
 
-      <div class="workflow-strip">
-        <div class="workflow-node is-complete">
-          <span>01</span>
-          <strong>Select Class</strong>
+      <section class="analysis-card">
+        <div class="section-head">
+          <span>Live Compare</span>
+          <strong>${classSummary.count} samples</strong>
         </div>
-        <div class="workflow-line"></div>
-        <div class="workflow-node is-active">
-          <span>02</span>
-          <strong>Measure + Live Data</strong>
-        </div>
-      </div>
-
-      <div class="timer-layout">
-        <div class="readout-zone">
-          <div class="readout-frame">
-            <span class="screen-tag">timer core</span>
-            <div class="digital-readout">${formatDigitalDuration(elapsed)}</div>
-          </div>
-
-          <div class="micro-grid">
-            <div class="micro-card">
-              <span>today total</span>
-              <strong>${formatMinutes(todayTotal)}</strong>
-            </div>
-            <div class="micro-card">
-              <span>weekly daily avg</span>
-              <strong>${formatMinutes(summary.weekly)}</strong>
-            </div>
-            <div class="micro-card">
-              <span>monthly daily avg</span>
-              <strong>${formatMinutes(summary.monthly)}</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="control-zone">
-          <div class="toggle-bank">
-            <button class="toggle-knob ${state.running ? "is-engaged" : ""}" id="toggleTimer">
-              <span>${state.running ? "stop" : "start"}</span>
-            </button>
-            <button class="toggle-knob pale" id="resetTimer" ${state.running || elapsed === 0 ? "disabled" : ""}>
-              <span>reset</span>
-            </button>
-            <button class="toggle-knob blue-accent" id="openDbSecondary">
-              <span>db</span>
-            </button>
-          </div>
-
-          <div class="selected-plate compact">
-            <span>measuring target</span>
-            <strong>${active.course}</strong>
-            <em>${active.professor} / ${active.code}</em>
-          </div>
-
-          <p class="step-copy">
-            측정 중에도 오늘 누적 시간과 평균값이 계속 갱신됩니다. DB 패널에서 전체 비교 데이터를 열 수 있습니다.
-          </p>
-        </div>
-      </div>
+        ${renderSparkline(classSummary.sparkline)}
+        <p class="analysis-copy">
+          전체 월간 평균 대비 ${classSummary.signal >= 0 ? "+" : ""}${classSummary.signal.toFixed(1)}%
+        </p>
+      </section>
     </section>
   `;
 }
 
-function renderDbModal(summaries, recentRecords) {
+function renderDbModal() {
+  const summaries = [
+    buildSummary("course-professor", "Class + Professor"),
+    buildSummary("course", "Class"),
+    buildSummary("professor", "Professor"),
+    buildSummary("all", "All Participants"),
+  ];
+  const recentRecords = enrichRecords(recordsForAnalysis())
+    .filter((record) => record.source !== "live")
+    .slice(0, 8);
+
   return `
     <div class="db-overlay" id="dbOverlay">
-      <div class="db-panel">
-        <div class="db-header">
+      <div class="db-sheet">
+        <div class="db-top">
           <div>
-            <p class="eyebrow ink">Data Bank</p>
-            <h2>Assignment duration averages</h2>
+            <p class="micro-label">Data Bank</p>
+            <h2>Average Durations</h2>
           </div>
-          <button class="close-button" id="closeDb">close</button>
+          <button class="ghost-button" id="closeDb">Close</button>
         </div>
 
-        <div class="summary-grid">
+        <div class="db-summary-list">
           ${summaries
             .map(
               (summary) => `
-                <article class="summary-card">
-                  <div class="summary-head">
+                <article class="db-summary-item">
+                  <div class="section-head">
                     <span>${summary.label}</span>
-                    <strong>${summary.count} samples</strong>
+                    <strong>${summary.count}</strong>
                   </div>
                   ${renderSparkline(summary.sparkline)}
-                  <div class="summary-values">
-                    <div>
-                      <span>Weekly avg</span>
-                      <strong>${formatMinutes(summary.weekly)}</strong>
-                    </div>
-                    <div>
-                      <span>Monthly avg</span>
-                      <strong>${formatMinutes(summary.monthly)}</strong>
-                    </div>
+                  <div class="db-summary-meta">
+                    <span>W ${formatMinutes(summary.weekly)}</span>
+                    <span>M ${formatMinutes(summary.monthly)}</span>
                   </div>
-                  <p class="signal ${summary.signal > 0 ? "high" : "low"}">
-                    ${summary.signal >= 0 ? "+" : ""}${summary.signal.toFixed(1)}% vs overall baseline
-                  </p>
                 </article>
               `,
             )
             .join("")}
         </div>
 
-        <div class="ledger-box">
-          <div class="db-subhead">
-            <span>Recent records</span>
-            <strong>${recentRecords.length} visible entries</strong>
+        <div class="db-records">
+          <div class="section-head">
+            <span>Recent Records</span>
+            <strong>${recentRecords.length}</strong>
           </div>
-          <div class="ledger-list">
+          <div class="db-record-list">
             ${recentRecords
               .map(
                 (record) => `
-                  <article class="ledger-item">
+                  <article class="db-record-item">
                     <div>
                       <strong>${record.course}</strong>
                       <span>${record.professor} · ${record.code}</span>
@@ -396,49 +362,54 @@ function renderDbModal(summaries, recentRecords) {
 }
 
 function render() {
-  const active = selectedMeta();
-  const elapsed = elapsedSeconds();
-  const recentRecords = enrichRecords(recordsForAnalysis())
-    .filter((record) => record.source !== "live")
-    .slice(0, 8);
-  const summaries = [
-    buildSummary("course-professor", "Class + Professor"),
-    buildSummary("course", "Class"),
-    buildSummary("professor", "Professor"),
-    buildSummary("all", "All Participants"),
-  ];
-
   app.innerHTML = `
-    <main class="app-shell">
-      <section class="stage">
-        ${state.step === "select" ? renderSelectStep(active) : renderTimerStep(active, elapsed)}
-      </section>
-      ${state.dbOpen ? renderDbModal(summaries, recentRecords) : ""}
+    <main class="mobile-app">
+      ${state.screen === "select" ? renderSelectScreen() : renderTimerScreen()}
+      ${state.dbOpen ? renderDbModal() : ""}
     </main>
   `;
 
   bindEvents();
 }
 
-function bindEvents() {
-  document.querySelector("#searchInput")?.addEventListener("input", (event) => {
-    state.search = event.currentTarget.value;
-    render();
-  });
+function updateSearchResultsOnly() {
+  const catalogBox = document.querySelector("#catalogBox");
+  const count = document.querySelector(".results-card .section-head strong");
 
+  if (catalogBox) {
+    catalogBox.innerHTML = renderCatalogList();
+  }
+
+  if (count) {
+    count.textContent = String(filteredCatalog().length);
+  }
+
+  bindCatalogSelection();
+}
+
+function bindCatalogSelection() {
   document.querySelectorAll("[data-select]").forEach((button) => {
     button.addEventListener("click", () => {
       state.selection = button.dataset.select;
       render();
     });
   });
+}
+
+function bindEvents() {
+  document.querySelector("#searchInput")?.addEventListener("input", (event) => {
+    state.search = event.currentTarget.value;
+    updateSearchResultsOnly();
+  });
+
+  bindCatalogSelection();
 
   document.querySelector("#advanceStep")?.addEventListener("click", () => {
     if (!state.selection) {
       return;
     }
 
-    state.step = "timer";
+    state.screen = "timer";
     render();
   });
 
@@ -447,16 +418,25 @@ function bindEvents() {
       return;
     }
 
-    state.step = "select";
+    state.screen = "select";
     state.dbOpen = false;
     render();
   });
 
-  document.querySelector("#openDbSecondary")?.addEventListener("click", openDb);
-  document.querySelector("#closeDb")?.addEventListener("click", closeDb);
+  document.querySelector("#openDbSecondary")?.addEventListener("click", () => {
+    state.dbOpen = true;
+    render();
+  });
+
+  document.querySelector("#closeDb")?.addEventListener("click", () => {
+    state.dbOpen = false;
+    render();
+  });
+
   document.querySelector("#dbOverlay")?.addEventListener("click", (event) => {
     if (event.target.id === "dbOverlay") {
-      closeDb();
+      state.dbOpen = false;
+      render();
     }
   });
 
@@ -493,16 +473,6 @@ function bindEvents() {
     state.startedAt = null;
     render();
   });
-}
-
-function openDb() {
-  state.dbOpen = true;
-  render();
-}
-
-function closeDb() {
-  state.dbOpen = false;
-  render();
 }
 
 function ensureTicker() {
