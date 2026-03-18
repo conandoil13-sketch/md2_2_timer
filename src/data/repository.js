@@ -1,4 +1,4 @@
-import { courseCatalog, seedAssignments } from "./mock.js?v=mobile-reset-4";
+import { courseCatalog, seedAssignments } from "./mock.js?v=mobile-reset-5";
 
 const STORAGE_KEY = "kmu-vd-time-analyzer.records";
 

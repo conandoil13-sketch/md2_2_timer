@@ -1,4 +1,4 @@
-import { activeRepository, repositoryModeLabel } from "./data/service.js?v=mobile-reset-4";
+import { activeRepository, repositoryModeLabel } from "./data/service.js?v=mobile-reset-5";
 import {
   averageByPeriod,
   aggregateDailyTotals,
@@ -10,7 +10,7 @@ import {
   relativeIntensity,
   totalByPeriod,
   totalForDate,
-} from "./lib/time.js?v=mobile-reset-4";
+} from "./lib/time.js?v=mobile-reset-5";
 
 const state = {
   catalog: [],

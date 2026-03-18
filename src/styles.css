@@ -640,8 +640,8 @@ h2 {
 
   .phone-shell {
     min-height: calc(100dvh - 16px);
-    padding: 14px;
-    gap: 12px;
+    padding: 12px;
+    gap: 10px;
   }
 
   h1 {
@@ -653,13 +653,14 @@ h2 {
   }
 
   .timer-screen {
-    min-height: 144px;
-    font-size: clamp(2.4rem, 13vw, 3.9rem);
+    min-height: 118px;
+    font-size: clamp(2.1rem, 12vw, 3.3rem);
   }
 
-  .stats-grid,
-  .control-row {
-    grid-template-columns: 1fr;
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px;
   }
 
   .results-scroll {
@@ -678,5 +679,125 @@ h2 {
   .knob-text {
     top: calc(100% + 8px);
     font-size: 0.64rem;
+  }
+
+  .timer-shell {
+    gap: 8px;
+  }
+
+  .timer-shell .app-header {
+    gap: 8px;
+  }
+
+  .timer-shell .micro-label {
+    margin-bottom: 4px;
+    font-size: 0.68rem;
+  }
+
+  .timer-shell h1 {
+    font-size: clamp(1.5rem, 9vw, 2rem);
+    line-height: 0.95;
+  }
+
+  .timer-shell .sub-copy {
+    margin-top: 4px;
+    font-size: 0.78rem;
+  }
+
+  .timer-shell .timer-card,
+  .timer-shell .controls-card,
+  .timer-shell .analysis-card,
+  .timer-shell .db-records,
+  .timer-shell .hero-card,
+  .timer-shell .search-card,
+  .timer-shell .results-card {
+    padding: 12px;
+  }
+
+  .timer-shell .live-indicator {
+    padding: 8px 10px;
+    font-size: 0.68rem;
+  }
+
+  .timer-shell .stat-card {
+    padding: 10px 8px;
+  }
+
+  .timer-shell .stat-card span {
+    font-size: 0.7rem;
+  }
+
+  .timer-shell .stat-card strong {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    line-height: 1.05;
+  }
+
+  .timer-shell .control-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    align-items: start;
+  }
+
+  .timer-shell .control-button.knob-button,
+  .timer-shell .ghost-button.knob-button {
+    width: 54px;
+    min-width: 54px;
+    height: 54px;
+    min-height: 54px;
+    margin-bottom: 18px;
+  }
+
+  .timer-shell .control-button.knob-button::before,
+  .timer-shell .ghost-button.knob-button::before {
+    top: 9px;
+    width: 3px;
+    height: 16px;
+  }
+
+  .timer-shell .knob-text {
+    top: calc(100% + 6px);
+    font-size: 0.56rem;
+    letter-spacing: 0.03em;
+  }
+
+  .timer-shell .analysis-card {
+    gap: 8px;
+  }
+
+  .timer-shell .sparkline {
+    height: 54px;
+  }
+
+  .timer-shell .analysis-copy {
+    font-size: 0.74rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .timer-shell .phone-shell,
+  .timer-shell {
+    gap: 6px;
+  }
+
+  .timer-shell .timer-screen {
+    min-height: 102px;
+    font-size: clamp(1.8rem, 11vw, 2.8rem);
+  }
+
+  .timer-shell .stat-card span {
+    font-size: 0.64rem;
+  }
+
+  .timer-shell .stat-card strong {
+    font-size: 0.82rem;
+  }
+
+  .timer-shell .control-button.knob-button,
+  .timer-shell .ghost-button.knob-button {
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+    min-height: 50px;
   }
 }
