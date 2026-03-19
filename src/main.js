@@ -1,5 +1,4 @@
 import { activeRepository, repositoryModeLabel } from "./data/service.js?v=mobile-reset-7";
-import { initializeAnalytics } from "./analytics.js?v=mobile-reset-7";
 import {
   averageByPeriod,
   aggregateDailyTotals,
@@ -594,8 +593,6 @@ function escapeHtml(value) {
 }
 
 async function bootstrap() {
-  initializeAnalytics();
-
   const [catalog, records] = await Promise.all([
     activeRepository.listCatalog(),
     activeRepository.listRecords(),
