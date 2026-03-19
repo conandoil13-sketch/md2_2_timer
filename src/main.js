@@ -1,4 +1,5 @@
-import { activeRepository, repositoryModeLabel } from "./data/service.js?v=mobile-reset-6";
+import { activeRepository, repositoryModeLabel } from "./data/service.js?v=mobile-reset-7";
+import { initializeAnalytics } from "./analytics.js?v=mobile-reset-7";
 import {
   averageByPeriod,
   aggregateDailyTotals,
@@ -10,7 +11,7 @@ import {
   relativeIntensity,
   totalByPeriod,
   totalForDate,
-} from "./lib/time.js?v=mobile-reset-6";
+} from "./lib/time.js?v=mobile-reset-7";
 
 const state = {
   catalog: [],
@@ -593,6 +594,8 @@ function escapeHtml(value) {
 }
 
 async function bootstrap() {
+  initializeAnalytics();
+
   const [catalog, records] = await Promise.all([
     activeRepository.listCatalog(),
     activeRepository.listRecords(),
